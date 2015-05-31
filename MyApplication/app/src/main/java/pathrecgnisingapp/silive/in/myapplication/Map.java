@@ -1,110 +1,150 @@
 package pathrecgnisingapp.silive.in.myapplication;
-
+        import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
-import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-/**
- * Created by Kartikay on 30-May-15.
- */
-public class Map extends FragmentActivity
-        implements
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener,
-        GoogleMap.OnMyLocationButtonClickListener, View.OnClickListener {
-    private Button track, stop, retrack;
-    private GoogleMap mMap;
-    private Polyline line;
-    private MapStateManager manager = null;
-    private CameraPosition previousposition;
-    private String start = "Start", end = "End";
-    private boolean istrack = false, isretrack = false, isstop = true;
-    private DB database = null;
-    private double x1 = 0, y1 = 0, x2 = 0, y2 = 0; //Last known location and present location coordinates
-    private LatLng previousLatLng = null, presentLatLng = null;//Considering present location and last known location
-    private Location presentLocation = null;
-    private GoogleApiClient mGoogleApiClient;
-    private TextView mMessageView;
-    // These settings are the same as the settings for the map. They will in fact give you updates
-    // at the maximal rates currently possible.
-    private static final LocationRequest REQUEST = LocationRequest.create()
-            .setInterval(5000)         // 5 seconds
-            .setFastestInterval(3000)    // 16ms = 60fps
-            .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+public class Map extends FragmentActivity implements View.OnClickListener {
+    private PolylineOptions line;
+    private static final int GPS_ERRORDIALOG_REQUEST = 9001;
+    private static final int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9002;
+    private static final float DEFAULTZOOM = 15;
+    private static final String LOGTAG = "Maps";
+    private final String TAG = "PRA";
+    GoogleMap mMap;
+    Button track, stop, retrack, view;
+    Receiver entryDetectReceiver;
+    boolean flagStart=false;                                        /*Used for putting start and end marker if flag start is true
+                                                                    or flag end is true.*/
+
+    IntentFilter intentFilter;
+    Intent intent;
+    private boolean istrack = false, isretrack = false, isstop = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_map);
-        initialise();
-        setUpGoogleApiClientIfNeeded();
-        mGoogleApiClient.connect();
-        manager = new MapStateManager(this);
+        if (servicesOK()) {
+            setContentView(R.layout.activity_map);
+
+            if (initMap()) {
+                initialise();
+                mMap.setMyLocationEnabled(true);
+                mMap.getUiSettings().isZoomControlsEnabled();
+                mMap.getUiSettings().isCompassEnabled();
+                mMap.getUiSettings().isMyLocationButtonEnabled();
+                mMap.getUiSettings().isMapToolbarEnabled();
+            } else {
+                Toast.makeText(this, "Map not available!", Toast.LENGTH_SHORT)
+                        .show();
+            }
+        }
+//        final MediaPlayer mp = MediaPlayer.create(this, R.raw.click);
+//        manager = new MapStateManager(this);
         track.setOnClickListener(this);
         stop.setOnClickListener(this);
         retrack.setOnClickListener(this);
+
     }
 
-    private void initialise() {
-        database = new DB(this);
+    public void initialise() {
+line=new PolylineOptions();
         track = (Button) findViewById(R.id.button1);
         stop = (Button) findViewById(R.id.button2);
         retrack = (Button) findViewById(R.id.button3);
+        entryDetectReceiver = new Receiver();
+        intentFilter = new IntentFilter();
+        intentFilter.addAction(UpdateService.UPDATE_MAP);
+        intent = new Intent(Map.this,
+                pathrecgnisingapp.silive.in.myapplication.UpdateService.class);
+    }
+    @Override
+    protected void onStop() {
+    //    MapStateManager mgr = new MapStateManager(this);
+      //  mgr.saveMapState(mMap);
+        super.onStop();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.splash, menu);
+        return true;
+    }
+
+    public boolean servicesOK() {
+        int isAvailable = GooglePlayServicesUtil
+                .isGooglePlayServicesAvailable(this);
+
+        if (isAvailable == ConnectionResult.SUCCESS) {
+            return true;
+        } else if (GooglePlayServicesUtil.isUserRecoverableError(isAvailable)) {
+            Dialog dialog = GooglePlayServicesUtil.getErrorDialog(isAvailable,
+                    this, GPS_ERRORDIALOG_REQUEST);
+            dialog.show();
+        } else {
+            Toast.makeText(this, "Can't connect to Google Play services",
+                    Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
+    private boolean initMap() {
+        if (mMap == null) {
+            SupportMapFragment mapFrag = (SupportMapFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.map);
+            mMap = mapFrag.getMap();
+        }
+        return (mMap != null);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.mapTypeNone:
+                mMap.setMapType(GoogleMap.MAP_TYPE_NONE);
+                break;
+            case R.id.mapTypeNormal:
+                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                break;
+            case R.id.mapTypeSatellite:
+                mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                break;
+            case R.id.mapTypeTerrain:
+                mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                break;
+            case R.id.mapTypeHybrid:
+                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                break;
+            default:
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
-        if (istrack || isretrack) {
-            setUpGoogleApiClientIfNeeded();
-            mGoogleApiClient.connect();
-        }
-        restoreMapState();
     }
 
-    public void restoreMapState() {
-        previousposition = manager.getSavedCameraPosition();
-        if (previousposition != null) {
-            CameraUpdate update = CameraUpdateFactory
-                    .newCameraPosition(previousposition);
-            mMap.moveCamera(update);
-            // This is part of the answer to the code challenge
-            mMap.setMapType(manager.getSavedMapType());
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.disconnect();
-        }
-    }
-
-    public void storeCurrentLocation(Location location) {
-    }
     private void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
         if (mMap == null) {
@@ -114,159 +154,79 @@ public class Map extends FragmentActivity
             // Check if we were successful in obtaining the map.
             if (mMap != null) {
                 mMap.setMyLocationEnabled(true);
-                mMap.setOnMyLocationButtonClickListener(this);
             }
         }
     }
 
-    private void setUpGoogleApiClientIfNeeded() {
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(LocationServices.API)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-        }
-    }
-    /**
-     * Button to get current Location. This demonstrates how to get the current Location as required
-     * without needing to register a LocationListener.
-     */
-    /**
-     * Implementation of {@link LocationListener}.
-     */
-    public LatLng getLatLng(double x, double y) {
-        return new LatLng(x, y);
-    }
-
     @Override
-    public void onLocationChanged(Location location) {
-        if (istrack || isretrack) {
-            if (getPreviousLatLng() != null) {
-                LatLng now = getLatLng(location.getLatitude(), location.getLongitude());
-                PolylineOptions polylineOptions = new PolylineOptions().add(now).add(getPreviousLatLng()).color(Color.BLUE);
-                line=mMap.addPolyline(polylineOptions);
-                setPreviousLatLng(getLatLng(location.getLatitude(), location.getLongitude()));
-            }
-            Toast.makeText(this, "Receievd Location Change", Toast.LENGTH_SHORT).show();
-        }
+    protected void onPause() {
+        super.onPause();
     }
 
-    @Override
-    public void onConnected(Bundle connectionHint) {
-        LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient,
-                REQUEST,
-                Map.this);  // LocationListener
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-    @Override
-    public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
-        // Return false so that we don't consume the event and the default behavior still occurs
-        // (the camera animates to the user's current position).
-        return false;
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        saveMapState();
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-
-    }
-
-    public void requestLocationRequest() {
-        LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient,
-                REQUEST,
-                Map.this);
-    }
-
-    public void stopLocationRequest() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-        mGoogleApiClient.disconnect();
-
-    }
-
-    public void setPreviousLatLng(LatLng ll) {
-        previousLatLng = ll;
-    }
-
-    public LatLng getPreviousLatLng() {
-        if (previousLatLng != null)
-            return previousLatLng;
-        return null;
-    }
-
-    public void saveMapState() {
-        manager.saveMapState(mMap);
-    }
-
-    public CameraPosition getSavedPosition() {
-        return manager.getSavedCameraPosition();
-    }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button1:
-
-                if (isstop) {
-                    Toast.makeText(this, "Track Cliecked", Toast.LENGTH_SHORT).show();
-                    mMap.clear();
-                    database.open();
+                if (!isstop) {
                     istrack = true;
-                    isstop = false;
-                    presentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                    if (presentLocation != null) {
-                        setPreviousLatLng(new LatLng(presentLocation.getLatitude(), presentLocation.getLongitude()));
-                        MarkerOptions options1 = new MarkerOptions()
-                                .title(start)
-                                .position(new LatLng(presentLocation.getLatitude(), presentLocation.getLongitude()))
-                                .anchor(.5f, .5f)
-                                .icon(BitmapDescriptorFactory
-                                        .fromResource(R.drawable.start));
-                        mMap.addMarker(options1);
-                    } else {
-                        Toast.makeText(this, "Present Location Null", Toast.LENGTH_SHORT).show();
-                    }
-                }
+                    flagStart=true;
+                    mMap.clear();
+                    startService(intent);
+                    registerReceiver(entryDetectReceiver, intentFilter);
 
-                break;
-            case R.id.button2:
-                Toast.makeText(this, "Location Request Stopped", Toast.LENGTH_SHORT).show();
-                if (istrack) {
-                    database.close();
+                    Toast.makeText(this, "Track Clicked", Toast.LENGTH_SHORT).show();
+
                     istrack = false;
                     isstop = true;
-                    presentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-                    if (presentLocation != null) {
-                        PolylineOptions polylineOptions = new PolylineOptions().add(getLatLng(presentLocation.getLatitude(), presentLocation.getLongitude()))
-                                .add(getPreviousLatLng()).
-                                color(Color.BLUE);
-                        line=mMap.addPolyline(polylineOptions);
-                        MarkerOptions options1 = new MarkerOptions()
-                                .title(end)
-                                .position(new LatLng(presentLocation.getLatitude(), presentLocation.getLongitude()))
-                                .anchor(.5f, .5f)
-                                .icon(BitmapDescriptorFactory
-                                        .fromResource(R.drawable.stop));
-                        mMap.addMarker(options1);
-                    }
-                    stopLocationRequest();
+                }
+                break;
+            case R.id.button2:
+
+                if (!istrack && isstop) {
+                    unregisterReceiver(entryDetectReceiver);
+                    stopService(intent);
                     Toast.makeText(this, "Location Request Stopped", Toast.LENGTH_SHORT).show();
+                    isstop = false;
+                    istrack = true;
                 }
                 break;
             case R.id.button3:
                 break;
+        }
+    }
+
+    private class Receiver extends BroadcastReceiver {
+        private LatLng previousLocation = null;
+        private Polyline pLine;
+        @Override
+        public void onReceive(Context context, Intent intent) {
+    double latitude = intent.getDoubleExtra(UpdateService.latitude, 0);
+            double longitude = intent.getDoubleExtra(UpdateService.longitude, 0);
+
+            if (previousLocation() != null) {
+                if(mMap==null)
+                Toast.makeText(Map.this,"onLocation change"+latitude,Toast.LENGTH_SHORT).show();
+                line = line.add(new LatLng(latitude, longitude)).add(previousLocation)
+                        .color(Color.BLUE);
+                mMap.addPolyline(line);
+            }
+            setCurrentLocation(new LatLng(latitude, longitude));
+          /*  if(flagStart=true){
+                MarkerOptions options3 = new MarkerOptions()
+                        .title("Start")
+                        .position(previousLocation())
+                        .anchor(.5f, .5f)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.stop));
+                mMap.addMarker(options3);
+                flagStart=false;
+            }*/
+        }
+        private LatLng previousLocation() {
+            return previousLocation;
+        }
+        private void setCurrentLocation(LatLng location) {
+            previousLocation = location;
         }
     }
 }
