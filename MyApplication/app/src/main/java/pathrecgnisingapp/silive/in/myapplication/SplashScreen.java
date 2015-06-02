@@ -35,12 +35,12 @@ public class SplashScreen extends Activity {
                     e.printStackTrace();
                 } finally {
                     try    {
-                        Intent openCounter = new Intent("in.silive.pra.MAP");
+                        Intent openCounter = new Intent("pathrecgnisingapp.silive.in.myapplication.MAP");
                         startActivity(openCounter);
                         overridePendingTransition(R.anim.lr,
                                 R.anim.rl);   } catch(Exception ex) {
                     }
-                    Intent openCounter = new Intent("pathrecgnisingapp.silive.in.myapplication.MainActivityMap");
+                    Intent openCounter = new Intent("pathrecgnisingapp.silive.in.myapplication.Map");
                     startActivity(openCounter);
                 }
             }

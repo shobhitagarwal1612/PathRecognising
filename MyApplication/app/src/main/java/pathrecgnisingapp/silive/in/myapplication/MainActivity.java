@@ -30,9 +30,8 @@ public class MainActivity extends Activity{
             mViewFlipper.addView(imageView);
         }
         // Set in/out flipping animations
-        mViewFlipper.setInAnimation(this, android.R.anim.fade_in);
-        mViewFlipper.setOutAnimation(this, android.R.anim.fade_out);
-
+        mViewFlipper.setInAnimation(this, R.anim.rl);
+        mViewFlipper.setOutAnimation(this, R.anim.lr);
         CustomGestureDetector customGestureDetector = new CustomGestureDetector();
         mGestureDetector = new GestureDetector(this, customGestureDetector);
     }
@@ -43,21 +42,16 @@ public class MainActivity extends Activity{
             if (e1.getX() > e2.getX()) {
                 mViewFlipper.showNext();
             }
-
             // Swipe right (previous)
             if (e1.getX() < e2.getX()) {
                 mViewFlipper.showPrevious();
             }
-
             return super.onFling(e1, e2, velocityX, velocityY);
         }
     }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         mGestureDetector.onTouchEvent(event);
-
         return super.onTouchEvent(event);
     }
-
 }

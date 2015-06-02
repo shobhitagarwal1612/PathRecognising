@@ -37,6 +37,7 @@ public class MainActivityMap extends FragmentActivity implements
     @SuppressWarnings("unused")
     private static final int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9002;
     GoogleMap mMap;
+
     Button track, stop, retrack, view;
     private Criteria criteria;
     private String provider = null;
@@ -95,11 +96,10 @@ public void initialise(){
     track = (Button) findViewById(R.id.button1);
     stop = (Button) findViewById(R.id.button2);
     retrack = (Button) findViewById(R.id.button3);
-
 }
     public boolean servicesOK() {
         int isAvailable = GooglePlayServicesUtil
-                .isGooglePlayServicesAvailable(this);
+                .isGooglePlayServicesAvailable(MainActivityMap.this);
         if (isAvailable == ConnectionResult.SUCCESS) {
             return true;
         } else if (GooglePlayServicesUtil.isUserRecoverableError(isAvailable)) {
@@ -162,7 +162,6 @@ public void initialise(){
             // This is part of the answer to the code challenge
             mMap.setMapType(mgr.getSavedMapType());
         }
-
     }
 
     @Override
@@ -172,9 +171,7 @@ public void initialise(){
         }
         super.onDestroy();
     }
-
     protected void gotoCurrentLocationStart() {
-
         Location currentLocation = locationManager.getLastKnownLocation(provider);
         if (currentLocation == null) {
             Toast.makeText(this, "Current location isn't available",
@@ -265,7 +262,6 @@ public void initialise(){
     }
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-
     }
     @Override
     public void onProviderEnabled(String provider) {
@@ -291,7 +287,7 @@ public void initialise(){
                     // Button Pressed
                 }
                 if (event.getAction() == MotionEvent.ACTION_UP) {
-                    if (s2 == false) {
+                    if (s2 == false&&s1!=true) {
                         x = 1;
                         track.setBackground(getResources().getDrawable(
                                 R.drawable.button_stop));
@@ -317,6 +313,7 @@ public void initialise(){
                         stop.setBackground(getResources().getDrawable(
                                 R.drawable.pause_pressed));
                         gotoCurrentLocationStop();
+
                         s1 = false;
                         s2 = false;
                         entry.close();

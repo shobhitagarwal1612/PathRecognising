@@ -27,14 +27,12 @@ public class MapStateManager {
     public void saveMapState(GoogleMap map) {
         SharedPreferences.Editor editor = mapStatePrefs.edit();
         CameraPosition position = map.getCameraPosition();
-
         editor.putFloat(LATITUDE, (float) position.target.latitude);
         editor.putFloat(LONGITUDE, (float) position.target.longitude);
         editor.putFloat(ZOOM, position.zoom);
         editor.putFloat(TILT, position.tilt);
         editor.putFloat(BEARING, position.bearing);
         editor.putInt(MAPTYPE, map.getMapType());
-
         editor.commit();
     }
 

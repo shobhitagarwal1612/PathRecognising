@@ -1,17 +1,17 @@
 package pathrecgnisingapp.silive.in.myapplication;
 
         import android.app.Service;
-        import android.content.Intent;
-        import android.location.Location;
-        import android.os.Bundle;
-        import android.os.IBinder;
-        import android.widget.Toast;
+import android.content.Intent;
+import android.location.Location;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.widget.Toast;
 
-        import com.google.android.gms.common.ConnectionResult;
-        import com.google.android.gms.common.api.GoogleApiClient;
-        import com.google.android.gms.location.LocationListener;
-        import com.google.android.gms.location.LocationRequest;
-        import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 
 /**
  * Created by Shobhit Agarwal on 30-05-2015.
@@ -29,7 +29,6 @@ public class UpdateService extends Service implements GoogleApiClient.Connection
     private DB database = null;
     private GoogleApiClient mGoogleApiClient;
     private Location previousLocation = null;
-
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -66,8 +65,8 @@ public class UpdateService extends Service implements GoogleApiClient.Connection
 
     @Override
     public void onLocationChanged(Location location) {
-        if (getPreviousLocation() != null) {
 
+        if (getPreviousLocation() != null) {
             if (location.distanceTo(getPreviousLocation()) >= 0.00001) {
                 database.createEntry(location.getLatitude(), location.getLongitude());
                 setPreviousLocation(location);
@@ -103,13 +102,10 @@ public class UpdateService extends Service implements GoogleApiClient.Connection
                 REQUEST,
                 this);
     }
-
     @Override
     public void onConnectionSuspended(int i) {
-
     }
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
     }
 }
-

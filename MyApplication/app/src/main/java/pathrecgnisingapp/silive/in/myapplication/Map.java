@@ -1,5 +1,6 @@
 package pathrecgnisingapp.silive.in.myapplication;
-        import android.app.Dialog;
+
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -17,7 +18,9 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -28,12 +31,14 @@ public class Map extends FragmentActivity implements View.OnClickListener {
     private static final float DEFAULTZOOM = 15;
     private static final String LOGTAG = "Maps";
     private final String TAG = "PRA";
+    private static String Start="Start",Stop="Stop";
+    private int wait=0;//A semaphore for putting Start Marker in map wait is 1 until marker is put and then again 0 so to continue adding polyline
     GoogleMap mMap;
+    private String entries,entriesArray[];
+    private LatLng previousLocation = null;//Variable for getting last known location LatLng variables....
     Button track, stop, retrack, view;
+    private DB database=null;
     Receiver entryDetectReceiver;
-    boolean flagStart=false;                                        /*Used for putting start and end marker if flag start is true
-                                                                    or flag end is true.*/
-
     IntentFilter intentFilter;
     Intent intent;
     private boolean istrack = false, isretrack = false, isstop = false;
@@ -69,6 +74,7 @@ line=new PolylineOptions();
         track = (Button) findViewById(R.id.button1);
         stop = (Button) findViewById(R.id.button2);
         retrack = (Button) findViewById(R.id.button3);
+        database=new DB(this);
         entryDetectReceiver = new Receiver();
         intentFilter = new IntentFilter();
         intentFilter.addAction(UpdateService.UPDATE_MAP);
@@ -163,64 +169,78 @@ line=new PolylineOptions();
         super.onPause();
     }
 
-
+public void readFromDatabase(){
+    entries=database.getData();
+    entriesArray=new String[entries.split(" ").length];
+    entriesArray=entries.split(" ");
+    Toast.makeText(this,"Length of entries"+entriesArray.length,Toast.LENGTH_SHORT).show();
+}
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button1:
                 if (!isstop) {
                     istrack = true;
-                    flagStart=true;
                     mMap.clear();
+                   database.upgradeDatabase();
+                    wait=1;
                     startService(intent);
                     registerReceiver(entryDetectReceiver, intentFilter);
-
                     Toast.makeText(this, "Track Clicked", Toast.LENGTH_SHORT).show();
-
                     istrack = false;
                     isstop = true;
                 }
                 break;
             case R.id.button2:
-
                 if (!istrack && isstop) {
                     unregisterReceiver(entryDetectReceiver);
                     stopService(intent);
+                    MarkerOptions options3 = new MarkerOptions()
+                            .title(Stop)
+                            .position(previousLocation)
+                            .anchor(.5f, .5f)
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.stop));
+                    mMap.addMarker(options3);
+                    previousLocation=null;
+                    //did null beacase if after one cycle of start and stop previous location will be having a finite value and next time during start or retrack it would start polyline from previous location
                     Toast.makeText(this, "Location Request Stopped", Toast.LENGTH_SHORT).show();
                     isstop = false;
                     istrack = true;
                 }
                 break;
             case R.id.button3:
+                readFromDatabase();
                 break;
         }
     }
 
     private class Receiver extends BroadcastReceiver {
-        private LatLng previousLocation = null;
         private Polyline pLine;
         @Override
         public void onReceive(Context context, Intent intent) {
-    double latitude = intent.getDoubleExtra(UpdateService.latitude, 0);
+        double latitude = intent.getDoubleExtra(UpdateService.latitude, 0);
             double longitude = intent.getDoubleExtra(UpdateService.longitude, 0);
+            if(wait==1){
+                setCurrentLocation(new LatLng(latitude, longitude));
 
-            if (previousLocation() != null) {
-                if(mMap==null)
-                Toast.makeText(Map.this,"onLocation change"+latitude,Toast.LENGTH_SHORT).show();
-                line = line.add(new LatLng(latitude, longitude)).add(previousLocation)
-                        .color(Color.BLUE);
-                mMap.addPolyline(line);
-            }
-            setCurrentLocation(new LatLng(latitude, longitude));
-          /*  if(flagStart=true){
                 MarkerOptions options3 = new MarkerOptions()
                         .title("Start")
                         .position(previousLocation())
                         .anchor(.5f, .5f)
-                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.stop));
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.start));
                 mMap.addMarker(options3);
-                flagStart=false;
-            }*/
+wait=0;
+            }
+            if(wait==0) {
+                if (previousLocation() != null) {
+                    if (mMap == null)
+                        Toast.makeText(Map.this, "onLocation change" + latitude, Toast.LENGTH_SHORT).show();
+                    line = new PolylineOptions().add(new LatLng(latitude, longitude)).add(previousLocation)
+                            .color(Color.BLUE);
+                    mMap.addPolyline(line);
+                }
+                setCurrentLocation(new LatLng(latitude, longitude));
+            }
         }
         private LatLng previousLocation() {
             return previousLocation;

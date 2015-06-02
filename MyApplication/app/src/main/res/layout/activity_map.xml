@@ -19,21 +19,22 @@
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/track"
-            android:drawable="@drawable/paused"
-            android:state_pressed="true" />
+            android:text="track"
+             />
 
         <Button
             android:id="@+id/button2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/pause_pressed" />
+            android:text="Stop"
+            />
 
         <Button
             android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/retrack" />
+            android:text="retrack"
+            />
     </LinearLayout>
 
     <fragment

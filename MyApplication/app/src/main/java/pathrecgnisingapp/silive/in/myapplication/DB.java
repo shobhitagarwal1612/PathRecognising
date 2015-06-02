@@ -49,7 +49,15 @@ public class DB {
     public DB(Context c) {
         ourContext = c;
     }
+public void upgradeDatabase(){
+    ourDatabase.execSQL("DROP TABLE IF EXISTS " + DATABASE_TABLE);
+    ourDatabase.execSQL("CREATE TABLE " + DATABASE_TABLE + " (" + KEY_ROWID
+            + " INTEGER PRIMARY KEY, " + KEY_LATITUDE
+            + " DOUBLE NOT NULL, " + KEY_LONGITUDE
+            + " DOUBLE NOT NULL);");
 
+
+}
     public DB open() throws SQLException {
         ourHelper = new DbHelper(ourContext);
         ourDatabase = ourHelper.getWritableDatabase();
@@ -81,29 +89,11 @@ public class DB {
         int iLong = c.getColumnIndex(KEY_LONGITUDE);
 
         for (c.moveToFirst(); !c.isAfterLast(); c.moveToNext()) {
-            result = result + c.getDouble(iRow) + ".   " + c.getDouble(iLat)
+            result = result + c.getDouble(iRow) + "\n" + c.getDouble(iLat)
                     + "			 " + c.getDouble(iLong) + " \n";
         }
-
         return result;
     }
 
-/*	Map line = new Map();*/
 
-/*	public void getinfo() {
-		// TODO Auto-generated method stub
-		String[] columns = new String[] { KEY_ROWID, KEY_LATITUDE,
-				KEY_LONGITUDE };
-		Cursor c = ourDatabase.query(DATABASE_TABLE, columns, null, null, null,
-				null, null);
-
-		int iLat = c.getColumnIndex(KEY_LATITUDE);
-		int iLong = c.getColumnIndex(KEY_LONGITUDE);
-
-		for (c.moveToLast(); !c.isBeforeFirst(); c.moveToPrevious()) {
-			line.drawline(c.getDouble(iLat), c.getDouble(iLong),
-					c.getDouble(iLat - 1), c.getDouble(iLong - 1));
-		}
-
-	}*/
 }
