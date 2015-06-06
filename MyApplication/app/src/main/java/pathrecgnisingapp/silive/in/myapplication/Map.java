@@ -37,8 +37,10 @@ public class Map extends FragmentActivity implements View.OnClickListener {
     IntentFilter intentFilter;
     Intent intent;
     private PolylineOptions line;
-    private int wait;//A semaphore for putting Start Marker in map wait is 1 until marker is put and then again 0 so to continue adding polyline
+    private int wait = 0;//A semaphore for putting Start Marker in map wait is 1 until marker is put and then again 0 so to continue adding polyline
+    private int loopCount = 0;
     private String entries, entriesArray[];
+    private double entriesDoubleArray[];
     private LatLng previousLocation = null;//Variable for getting last known location LatLng variables....
     private DB database = null;
     private boolean istrack = false, isretrack = false, isstop = false;
@@ -174,7 +176,17 @@ public class Map extends FragmentActivity implements View.OnClickListener {
         entries = database.getData();
         entriesArray = new String[entries.split(" ").length];
         entriesArray = entries.split(" ");
+        ConvertArraytoInt(entriesArray);
         Toast.makeText(this, "Length of entries" + entriesArray.length, Toast.LENGTH_SHORT).show();
+    }
+
+    public void ConvertArraytoInt(String stringArray[]) {
+        int length = stringArray.length;
+        loopCount = 0;
+        while (loopCount < length) {
+            entriesDoubleArray[loopCount] = Double.parseDouble(stringArray[loopCount]);
+            loopCount++;
+        }
     }
 
     @Override
@@ -211,8 +223,39 @@ public class Map extends FragmentActivity implements View.OnClickListener {
                 }
                 break;
             case R.id.button3:
+                mMap.clear();
                 readFromDatabase();
+                retrack();
                 break;
+        }
+    }
+
+    public void retrack() {
+        loopCount = 0;
+        PolylineOptions pLine;
+        int length = entriesDoubleArray.length;
+        while (loopCount < length - 2) {
+            if (loopCount == 0) {
+                MarkerOptions options3 = new MarkerOptions()
+                        .title("Start")
+                        .position(new LatLng(entriesDoubleArray[loopCount], entriesDoubleArray[loopCount + 1]))
+                        .anchor(.5f, .5f)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.start));
+                mMap.addMarker(options3);
+
+            } else if (loopCount == length - 4) {
+                MarkerOptions options3 = new MarkerOptions()
+                        .title("Stop")
+                        .position(new LatLng(entriesDoubleArray[loopCount], entriesDoubleArray[loopCount + 1]))
+                        .anchor(.5f, .5f)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.stop));
+                mMap.addMarker(options3);
+            }
+            pLine = new PolylineOptions().add(new LatLng(entriesDoubleArray[loopCount], entriesDoubleArray[loopCount + 1])).add(new LatLng(entriesDoubleArray[loopCount + 2], entriesDoubleArray[loopCount + 3]))
+                    .color(Color.BLUE);
+            mMap.addPolyline(pLine);
+
+            loopCount += 2;
         }
     }
 
@@ -225,7 +268,6 @@ public class Map extends FragmentActivity implements View.OnClickListener {
             double longitude = intent.getDoubleExtra(UpdateService.longitude, 0);
             if (wait == 1) {
                 setCurrentLocation(new LatLng(latitude, longitude));
-
                 MarkerOptions options3 = new MarkerOptions()
                         .title("Start")
                         .position(previousLocation())
