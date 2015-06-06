@@ -25,22 +25,22 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 public class Map extends FragmentActivity implements View.OnClickListener {
-    private PolylineOptions line;
     private static final int GPS_ERRORDIALOG_REQUEST = 9001;
     private static final int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9002;
     private static final float DEFAULTZOOM = 15;
     private static final String LOGTAG = "Maps";
+    private static String Start = "Start", Stop = "Stop";
     private final String TAG = "PRA";
-    private static String Start="Start",Stop="Stop";
-    private int wait=0;//A semaphore for putting Start Marker in map wait is 1 until marker is put and then again 0 so to continue adding polyline
     GoogleMap mMap;
-    private String entries,entriesArray[];
-    private LatLng previousLocation = null;//Variable for getting last known location LatLng variables....
     Button track, stop, retrack, view;
-    private DB database=null;
     Receiver entryDetectReceiver;
     IntentFilter intentFilter;
     Intent intent;
+    private PolylineOptions line;
+    private int wait;//A semaphore for putting Start Marker in map wait is 1 until marker is put and then again 0 so to continue adding polyline
+    private String entries, entriesArray[];
+    private LatLng previousLocation = null;//Variable for getting last known location LatLng variables....
+    private DB database = null;
     private boolean istrack = false, isretrack = false, isstop = false;
 
     @Override
@@ -70,21 +70,22 @@ public class Map extends FragmentActivity implements View.OnClickListener {
     }
 
     public void initialise() {
-line=new PolylineOptions();
+        line = new PolylineOptions();
         track = (Button) findViewById(R.id.button1);
         stop = (Button) findViewById(R.id.button2);
         retrack = (Button) findViewById(R.id.button3);
-        database=new DB(this);
+        database = new DB(this);
         entryDetectReceiver = new Receiver();
         intentFilter = new IntentFilter();
         intentFilter.addAction(UpdateService.UPDATE_MAP);
         intent = new Intent(Map.this,
                 pathrecgnisingapp.silive.in.myapplication.UpdateService.class);
     }
+
     @Override
     protected void onStop() {
-    //    MapStateManager mgr = new MapStateManager(this);
-      //  mgr.saveMapState(mMap);
+        //    MapStateManager mgr = new MapStateManager(this);
+        //  mgr.saveMapState(mMap);
         super.onStop();
     }
 
@@ -169,12 +170,13 @@ line=new PolylineOptions();
         super.onPause();
     }
 
-public void readFromDatabase(){
-    entries=database.getData();
-    entriesArray=new String[entries.split(" ").length];
-    entriesArray=entries.split(" ");
-    Toast.makeText(this,"Length of entries"+entriesArray.length,Toast.LENGTH_SHORT).show();
-}
+    public void readFromDatabase() {
+        entries = database.getData();
+        entriesArray = new String[entries.split(" ").length];
+        entriesArray = entries.split(" ");
+        Toast.makeText(this, "Length of entries" + entriesArray.length, Toast.LENGTH_SHORT).show();
+    }
+
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -182,8 +184,8 @@ public void readFromDatabase(){
                 if (!isstop) {
                     istrack = true;
                     mMap.clear();
-                   database.upgradeDatabase();
-                    wait=1;
+                    database.upgradeDatabase();
+                    wait = 1;
                     startService(intent);
                     registerReceiver(entryDetectReceiver, intentFilter);
                     Toast.makeText(this, "Track Clicked", Toast.LENGTH_SHORT).show();
@@ -201,7 +203,7 @@ public void readFromDatabase(){
                             .anchor(.5f, .5f)
                             .icon(BitmapDescriptorFactory.fromResource(R.drawable.stop));
                     mMap.addMarker(options3);
-                    previousLocation=null;
+                    previousLocation = null;
                     //did null beacase if after one cycle of start and stop previous location will be having a finite value and next time during start or retrack it would start polyline from previous location
                     Toast.makeText(this, "Location Request Stopped", Toast.LENGTH_SHORT).show();
                     isstop = false;
@@ -216,11 +218,12 @@ public void readFromDatabase(){
 
     private class Receiver extends BroadcastReceiver {
         private Polyline pLine;
+
         @Override
         public void onReceive(Context context, Intent intent) {
-        double latitude = intent.getDoubleExtra(UpdateService.latitude, 0);
+            double latitude = intent.getDoubleExtra(UpdateService.latitude, 0);
             double longitude = intent.getDoubleExtra(UpdateService.longitude, 0);
-            if(wait==1){
+            if (wait == 1) {
                 setCurrentLocation(new LatLng(latitude, longitude));
 
                 MarkerOptions options3 = new MarkerOptions()
@@ -229,9 +232,9 @@ public void readFromDatabase(){
                         .anchor(.5f, .5f)
                         .icon(BitmapDescriptorFactory.fromResource(R.drawable.start));
                 mMap.addMarker(options3);
-wait=0;
+                wait = 0;
             }
-            if(wait==0) {
+            if (wait == 0) {
                 if (previousLocation() != null) {
                     if (mMap == null)
                         Toast.makeText(Map.this, "onLocation change" + latitude, Toast.LENGTH_SHORT).show();
@@ -242,9 +245,11 @@ wait=0;
                 setCurrentLocation(new LatLng(latitude, longitude));
             }
         }
+
         private LatLng previousLocation() {
             return previousLocation;
         }
+
         private void setCurrentLocation(LatLng location) {
             previousLocation = location;
         }
